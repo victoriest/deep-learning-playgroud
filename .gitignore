@@ -106,13 +106,9 @@ Pipfile
 *.mp4
 *.avi
 
-victoriest/
+*.jpg
+*.png
 
-tensorflow_step_by_step/logs/
-tensorflow_step_by_step/MNIST_data/
-victoriest_digit_recognizer/simple_data_1st_check.h5
-victoriest_digit_recognizer/recognize_service/static/models/threshold_with_deline_data_2nd_check.h5
-victoriest_digit_recognizer/recognize_service/static/models/threshold_data_2nd_check.h5
-victoriest_digit_recognizer/recognize_service/static/input_imgs/twLLkHPVv8_DISPOSE.jpg
-victoriest_digit_recognizer/recognize_service/static/input_imgs/nHl5t7ptKO_DISPOSE.jpg
-victoriest_digit_recognizer/trainer/image_downloader/digit_data.csv
+*.pb
+*.h5
+*.hdf5
