@@ -112,3 +112,5 @@ Pipfile
 *.pb
 *.h5
 *.hdf5
+
+checkpoints/
