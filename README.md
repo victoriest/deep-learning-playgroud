@@ -94,6 +94,16 @@
 [How to use Keras fit and fit_generator (a hands-on tutorial)](https://www.pyimagesearch.com/2018/12/24/how-to-use-keras-fit-and-fit_generator-a-hands-on-tutorial/)
 
 
+* 2019-07-22 日更新: 手写英文字母识别
+    可以通过使用RCNN的模型的少许修改, 用EMNIST数据集训练以及测试, 准确率在95%.
+    
+    修改内容: 将输出Y维度, 从10改为26. 即, 26个英文字母, 不分大小写.
+     
+    [EMNIST数据集](https://www.nist.gov/node/1298471/emnist-dataset)
+
+    [EMNIST的数据集加载lib](https://pypi.org/project/emnist/)
+
+
 ## 文档边缘检测
 目标是从照片识别出文档区域, 进行了两个模型的训练以及测试
 #### 路径1:

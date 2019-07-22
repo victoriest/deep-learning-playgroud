@@ -2,7 +2,25 @@ import numpy as np
 
 from handwrite_digit_ocr.ocr_model import ModelType, OcrModel
 
-if __name__ == '__main__':
+
+def character_ocr_train():
+    mnist_out = np.load('E:/_dataset/EMNIST/EMNIST.npz')
+    x_train, y_train, x_test, y_test = mnist_out['x_train'], \
+                                       mnist_out['y_train'], \
+                                       mnist_out['x_test'], \
+                                       mnist_out['y_test']
+
+    model = OcrModel.get_model(ModelType.RCNN)
+
+    model.summary()
+
+    # # model = load_model('model-RCNN.h5')
+    model.fit(x_train, y_train, batch_size=192, epochs=20, verbose=1, shuffle=True)
+
+    model.save('model-EMNIST-RCNN.h5')
+
+
+def digit_ocr_train():
     mnist_out = np.load('C:/_project/victoriest_digit_recognizer/dataset_28_28_3/mnist.npz')
     mnist_x_train, mnist_y_train, mnist_x_test, mnist_y_test = mnist_out['x_train'], \
                                                                mnist_out['y_train'], \
@@ -34,11 +52,6 @@ if __name__ == '__main__':
 
     print(x_train.shape, y_train.shape, x_test.shape, y_test.shape)
 
-    model = OcrModel.get_model(ModelType.RCNN)
 
-    model.summary()
-
-    # # model = load_model('model-RCNN.h5')
-    model.fit(x_train, y_train, batch_size=64, epochs=5, verbose=1, shuffle=True)
-
-    model.save('model-RCNN.h5')
+if __name__ == '__main__':
+    character_ocr_train()

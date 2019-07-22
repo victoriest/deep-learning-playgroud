@@ -62,14 +62,15 @@ def save_img_data_to_file(train_data_path, test_data_path, output_npz_path):
         output_y = []
         for path, dir_list, file_list in g:
             for file_name in file_list:
-                output_x.append(file_name[0])
+                sss = file_name.split("_")
+                output_y.append(int(sss[0]) - 1)
                 d = os.path.join(path, file_name)
                 t_img = cv2.imread(d)
                 t_img = cv2.resize(t_img, (28, 28))
-                # t_img = cv2.cvtColor(t_img, cv2.COLOR_GRAY2RGB)
+                # t_img = cv2.cvtColor(t_img, cv2.COLOR_RGB2GRAY)
                 output_x.append(t_img)
         output_x = np.array(output_x)
-        output_y = np_utils.to_categorical(output_y, num_classes=10)
+        output_y = np_utils.to_categorical(output_y, num_classes=26)
         return output_x, output_y
 
     x_train, y_train = __convertor(train_data_path)
@@ -78,3 +79,9 @@ def save_img_data_to_file(train_data_path, test_data_path, output_npz_path):
     print(x_test.shape, y_test.shape)
 
     np.savez(output_npz_path, x_train=x_train, y_train=y_train, x_test=x_test, y_test=y_test)
+
+
+if __name__ == '__main__':
+    save_img_data_to_file("E:/_dataset/EMNIST/letters_train",
+                          "E:/_dataset/EMNIST/letters_test",
+                          "E:/_dataset/EMNIST/EMNIST.npz")

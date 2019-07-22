@@ -174,7 +174,7 @@ class OcrModel:
 
         out = MaxPool2D((16, 16), strides=(16, 16), padding='same')(rconv4)
         flatten = Flatten()(out)
-        prediction = Dense(10, activation='softmax')(flatten)
+        prediction = Dense(26, activation='softmax')(flatten)
 
         model = Model(inputs=input_img, outputs=prediction)
         adam = optimizers.Adam(lr=0.0005, beta_1=0.9, beta_2=0.999, epsilon=1e-08)
