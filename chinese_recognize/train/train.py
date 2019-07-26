@@ -1,7 +1,6 @@
 # -*- coding:utf-8 -*-
 import os
 from imp import reload
-from tensorflow.python.ops import ctc_ops as ctc
 
 import numpy as np
 import tensorflow as tf
@@ -11,11 +10,12 @@ from keras.callbacks import EarlyStopping, ModelCheckpoint, LearningRateSchedule
 from keras.layers import Input
 from keras.layers.core import Lambda
 from keras.models import Model
+from tensorflow.python.ops import ctc_ops as ctc
 
-from chinese_recognize import densenet
+from chinese_recognize.densenet import densenet
 
 alphabet_en = u"""_ abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890,.<>/?;:'"[]{}!@#$%^&*()-=+\|`"""
-
+character_en = u"""_|abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890#'",.:;-()?*!/&+"""
 
 img_h = 32
 img_w = 280
@@ -131,7 +131,7 @@ def gen_en(image_label, image_path, batchsize=128, maxlabellength=10, imagesize=
 
             if (len(str) <= 0):
                 print("len < 0", j)
-            input_length[i] = imagesize[1] // 8
+            input_length[i] = imagesize[1] // 50
             labels[i, :len(str)] = [int(k) - 1 for k in str]
 
         inputs = {'the_input': x,
@@ -141,7 +141,6 @@ def gen_en(image_label, image_path, batchsize=128, maxlabellength=10, imagesize=
                   }
         outputs = {'ctc': np.zeros([batchsize])}
         yield (inputs, outputs)
-
 
 
 def ctc_batch_cost(y_true, y_pred, input_length, label_length):
@@ -155,6 +154,7 @@ def ctc_batch_cost(y_true, y_pred, input_length, label_length):
                                        labels=sparse_labels,
                                        sequence_length=input_length,
                                        ignore_longer_outputs_than_inputs=True), 1)
+
 
 def ctc_lambda_func(args):
     y_pred, labels, input_length, label_length = args
@@ -277,6 +277,81 @@ def englist_train():
                         callbacks=[checkpoint, earlystop, changelr, tensorboard])
 
 
+def english_handwriting_train():
+    # rev = ""
+    # s = "3,1,18,3,1,19,5,0,13,5,1,20,0,71,0"
+    # arr = s.split(",")
+    # for a in arr:
+    #     idx = int(a)
+    #     rev += character_en[idx]
+    # print(rev)
+    # return
+
+    char_set = ''.join(character_en[1:] + '卍')
+    nclass = len(char_set)
+
+    test_data_dict = {}
+    train_data_dict = {}
+    idx = 0
+    max_label_length = 0
+    with open('D:/github.com/deep-learning-playgroud/handwriting_english_recognize/sentences.txt', 'r') as f:
+        lines = f.readlines()
+
+        for line in lines:
+            cv_line_arr = []
+            if line.startswith('#'):
+                continue
+            line_arr = line.split(' ')
+            sentences = line_arr[len(line_arr) - 1].strip()
+            if len(sentences) > max_label_length:
+                max_label_length = len(sentences)
+
+            for c in sentences:
+                cv_line_arr.append(str(character_en.index(c)))
+            print(cv_line_arr)
+            if idx % 100 == 0:
+                test_data_dict[line_arr[0] + ".png"] = cv_line_arr
+            else:
+                train_data_dict[line_arr[0] + ".png"] = cv_line_arr
+            idx += 1
+
+    K.set_session(get_session())
+    reload(densenet)
+    basemodel, model = get_model(img_h, nclass)
+
+    modelPath = './models/weights_densenet_hw.h5'
+    if os.path.exists(modelPath):
+        print("Loading model weights...")
+        basemodel.load_weights(modelPath)
+        print('done!')
+
+    train_loader = gen_en(train_data_dict, 'E:/_dataset/IAM/en_hw', batchsize=batch_size,
+                          maxlabellength=max_label_length,
+                          imagesize=(img_h, img_w))
+    test_loader = gen_en(test_data_dict, 'E:/_dataset/IAM/en_hw', batchsize=batch_size,
+                         maxlabellength=max_label_length,
+                         imagesize=(img_h, img_w))
+
+    checkpoint = ModelCheckpoint(filepath='./models/weights_densenet_hw-{epoch:02d}-{val_loss:.2f}.h5',
+                                 monitor='val_loss',
+                                 save_best_only=False, save_weights_only=True)
+    lr_schedule = lambda epoch: 0.0005 * 0.4 ** epoch
+    learning_rate = np.array([lr_schedule(i) for i in range(10)])
+    changelr = LearningRateScheduler(lambda epoch: float(learning_rate[epoch]))
+    earlystop = EarlyStopping(monitor='val_loss', patience=2, verbose=1)
+    tensorboard = TensorBoard(log_dir='./models/logs', write_graph=True)
+
+    print('-----------Start training-----------')
+    model.fit_generator(train_loader,
+                        steps_per_epoch=161752 // batch_size,
+                        epochs=10,
+                        initial_epoch=0,
+                        validation_data=test_loader,
+                        validation_steps=1617 // batch_size,
+                        callbacks=[checkpoint, earlystop, changelr, tensorboard])
+
+
 if __name__ == '__main__':
     # chinese_train()
-    englist_train()
+    # englist_train()
+    english_handwriting_train()

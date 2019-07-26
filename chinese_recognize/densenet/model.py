@@ -8,12 +8,15 @@ from keras.layers import Input
 from keras.models import Model
 # import keras.backend as K
 
-from . import keys
-from . import densenet
+from chinese_recognize.densenet import keys
+from chinese_recognize.densenet import densenet
 
 reload(densenet)
 
-characters = keys.alphabet[:]
+character_en = u"""_|abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890#'",.:;-()?*!/&+"""
+
+
+characters = character_en[:]
 characters = characters[1:] + u'卍'
 nclass = len(characters)
 
@@ -21,7 +24,7 @@ input = Input(shape=(32, None, 1), name='the_input')
 y_pred= densenet.dense_cnn(input, nclass)
 basemodel = Model(inputs=input, outputs=y_pred)
 
-modelPath = os.path.join(os.getcwd(), 'densenet/models/weights_densenet.h5')
+modelPath = os.path.join(os.getcwd(), 'densenet/models/weights_densenet_hw-01-0.03.h5')
 if os.path.exists(modelPath):
     basemodel.load_weights(modelPath)
 
@@ -59,3 +62,6 @@ def predict(img):
     out = decode(y_pred)
 
     return out
+
+image = Image.open("E:/_dataset/IAM/en_hw/a01-000u-s00-00.png").convert('L')
+print(predict(image))

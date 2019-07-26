@@ -104,6 +104,56 @@
     [EMNIST的数据集加载lib](https://pypi.org/project/emnist/)
 
 
+* 2019-07-26 日更新: 手写英文单词短语识别
+
+    参考github项目:
+    <https://github.com/githubharald/SimpleHTR>
+    
+    使用其中的模型识别模型, 其中为了让识别出来的结果更加准确(纠正拼写错误, 如book 识别成了buuk), 需要加入解码器[CTCWordBeamSearch](https://github.com/githubharald/CTCWordBeamSearch).
+    
+    结果发现该解码器需要支持tensorflow的自定义操作, 而自定义操作不能在windows平台下使用. 所以需要找替代方案: 
+    
+    [partten](https://www.clips.uantwerpen.be/pages/pattern), 一个基于python的自然语言处理工具包. 
+    
+    使用过程中可能会遇到网络问题导致, 报错:
+    ```
+    zipfile.BadZipFile: File is not a zip file
+    ```
+    找到该文件下载的路径,删除 重新下载即可.
+    
+    为了识别短语, 加入分词算法:<https://github.com/githubharald/WordSegmentation>
+    
+    另外为了在flask里加载多个keras模型, 总是报错:
+    
+    ```
+    ValueError: Tensor Tensor is not an element of this graph
+    ```
+    
+    强制将Flask改为单线程模式就行了
+    
+    ```
+    if __name__ == '__main__':
+        app.run(host="0.0.0.0", port=8080, threaded=False)
+    ```
+    
+    或者直接使用生产级的WSGI容器. 
+    
+    参考文章:
+    * [Handwriting Recognition using Tensorflow](https://medium.com/@moshnoi2000/handwritting-recognition-using-tensorflow-aaf84fa9c587)
+    
+    * [Handwriting recognition using Tensorflow and Keras](https://towardsdatascience.com/handwriting-recognition-using-tensorflow-and-keras-819b36148fe5)
+    
+    * [FAQ: Build a Handwritten Text Recognition System using TensorFlow](https://towardsdatascience.com/faq-build-a-handwritten-text-recognition-system-using-tensorflow-27648fb18519)
+    
+    * [Handwriting OCR: handwriting recognition and language modeling with MXNet Gluon](https://medium.com/apache-mxnet/handwriting-ocr-handwriting-recognition-and-language-modeling-with-mxnet-gluon-4c7165788c67)
+    
+    * [Beam Search Decoding in CTC-trained Neural Networks](https://towardsdatascience.com/beam-search-decoding-in-ctc-trained-neural-networks-5a889a3d85a7)
+    
+    * <https://github.com/githubharald/CTCDecoder>
+    
+    * [Word Beam Search: A CTC Decoding Algorithm](https://towardsdatascience.com/word-beam-search-a-ctc-decoding-algorithm-b051d28f3d2e)
+    
+
 ## 文档边缘检测
 目标是从照片识别出文档区域, 进行了两个模型的训练以及测试
 #### 路径1:
