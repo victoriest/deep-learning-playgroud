@@ -18,21 +18,28 @@ class ModelType(Enum):
     RCNN = 3,
 
 
+class DataType(Enum):
+    Digit = 0,
+    DigitWithSpace = 1,
+    Character = 2,
+    CharacterFromA2K = 3,
+
+
 class OcrModel:
     @staticmethod
-    def get_model(model_type=ModelType.SimpleCNN):
+    def get_model(model_type=ModelType.SimpleCNN, num_of_classification=10):
         if model_type is ModelType.SimpleCNN:
-            return OcrModel.__gen_simple_cnn_model()
+            return OcrModel.__gen_simple_cnn_model(num_of_classification)
         elif model_type is ModelType.MnistAcc997CNN:
-            return OcrModel.__gen_997_cnn_model()
+            return OcrModel.__gen_997_cnn_model(num_of_classification)
         elif model_type is ModelType.Vgg16:
-            return OcrModel.__gen_vgg16_model()
+            return OcrModel.__gen_vgg16_model(num_of_classification)
         elif model_type is ModelType.RCNN:
-            return OcrModel.__gen__rcnn_model()
+            return OcrModel.__gen__rcnn_model(num_of_classification)
         return None
 
     @staticmethod
-    def __gen_simple_cnn_model():
+    def __gen_simple_cnn_model(num_of_classification=10):
         """
         该简单CNN模型作为参照对比使用
         :return:
@@ -56,12 +63,12 @@ class OcrModel:
         # Dropout 50% 的输入神经元
         model.add(Dropout(0.5))
         # 使用 softmax 激活函数做多分类，输出各数字的概率
-        model.add(Dense(10, activation='softmax', name='softmax-10'))
+        model.add(Dense(num_of_classification, activation='softmax', name='softmax-10'))
         model.compile(loss='categorical_crossentropy', metrics=['accuracy'], optimizer='adam')
         return model
 
     @staticmethod
-    def __gen_997_cnn_model():
+    def __gen_997_cnn_model(num_of_classification=10):
         """
         引用自kaggle上的mnist数据集的acc为99.7%的模型:
         https://www.kaggle.com/yassineghouzam/introduction-to-cnn-keras-0-997-top-6
@@ -88,7 +95,7 @@ class OcrModel:
         model.add(Flatten())
         model.add(Dense(256, activation="relu"))
         model.add(Dropout(0.5))
-        model.add(Dense(10, activation="softmax"))
+        model.add(Dense(num_of_classification, activation="softmax"))
 
         optimizer = RMSprop(lr=0.001, rho=0.9, epsilon=1e-08, decay=0.0)
         model.compile(optimizer=optimizer, loss="categorical_crossentropy", metrics=["accuracy"])
@@ -96,7 +103,7 @@ class OcrModel:
         return model
 
     @staticmethod
-    def __gen_vgg16_model():
+    def __gen_vgg16_model(num_of_classification=10):
         """
         引用自: 利用keras改写VGG16经典模型在手写数字识别体中的应用
         https://www.cnblogs.com/LHWorldBlog/p/8677131.html
@@ -116,7 +123,7 @@ class OcrModel:
         model = Dense(4096, activation='relu', name='fc1')(model)
         model = Dense(4096, activation='relu', name='fc2')(model)
         model = Dropout(0.5)(model)
-        model = Dense(10, activation='softmax')(model)  # model就是最后的y
+        model = Dense(num_of_classification, activation='softmax')(model)  # model就是最后的y
         model_vgg_mnist = Model(inputs=model_vgg.input, outputs=model, name='vgg16')
         # 把model_vgg.input  X传进来
         # 把model Y传进来 就可以训练模型了
@@ -155,12 +162,12 @@ class OcrModel:
         return stack8
 
     @staticmethod
-    def __gen__rcnn_model():
+    def __gen__rcnn_model(num_of_classification=10):
         """
         使用RCNN模型, 引用自: https://github.com/JimLee4530/RCNN
         :return:
         """
-        input_img = Input(shape=(INPUT_IMG_HEIGHT, INPUT_IMG_WIDTH, 3))
+        input_img = Input(shape=(INPUT_IMG_HEIGHT, INPUT_IMG_WIDTH, 3), name="input")
         conv1 = Conv2D(filters=192, kernel_size=[5, 5], strides=(1, 1), padding='same', activation='relu')(input_img)
 
         rconv1 = OcrModel.__rcl_block(192, conv1)
@@ -172,9 +179,9 @@ class OcrModel:
         dropout3 = Dropout(0.2)(rconv3)
         rconv4 = OcrModel.__rcl_block(192, dropout3)
 
-        out = MaxPool2D((16, 16), strides=(16, 16), padding='same')(rconv4)
+        out = MaxPool2D((14, 14), strides=(14, 14), padding='same')(rconv4)
         flatten = Flatten()(out)
-        prediction = Dense(26, activation='softmax')(flatten)
+        prediction = Dense(num_of_classification, activation='softmax')(flatten)
 
         model = Model(inputs=input_img, outputs=prediction)
         adam = optimizers.Adam(lr=0.0005, beta_1=0.9, beta_2=0.999, epsilon=1e-08)
