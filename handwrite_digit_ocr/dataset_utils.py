@@ -1,3 +1,5 @@
+import os
+
 import numpy as np
 
 
@@ -70,8 +72,32 @@ def load_character_dataset(npz_dataset_path, character_range="az"):
     return x_train_filted, y_train_filted, x_test_filted, y_test_filted
 
 
+def extract_img_from_npz_file(npz_file_path, extract_dir_path):
+    x_train, y_train, x_test, y_test = load_character_dataset(npz_file_path, 'ak')
+
+    from PIL import Image
+
+    def __convert(dataset_x, dataset_y, child_dir_name):
+        if not os.path.exists(extract_dir_path):
+            os.mkdir(extract_dir_path)
+        child_dir = os.path.join(extract_dir_path, child_dir_name)
+        if not os.path.exists(child_dir):
+            os.mkdir(child_dir)
+        idx = 0
+        for img in dataset_x:
+            jpg = Image.fromarray(img)
+            # print(dataset_y[idx], int(np.argmax(dataset_y[idx])), chr(int(np.argmax(dataset_y[idx])) + 97))
+            tag = chr(int(np.argmax(dataset_y[idx])) + 97)
+            jpg.save(os.path.join(child_dir, str(tag) + '_' + str(idx) + '.jpg'))
+            idx += 1
+
+    __convert(x_train, y_train, 'train')
+    __convert(x_test, y_test, 'test')
+
+
 if __name__ == '__main__':
-    pass
+    extract_img_from_npz_file('E:/_dataset/RCNN/EMNIST-balanced-191127-added.npz',
+                              os.path.join(os.getcwd(), 'out_test'))
     # character_range = 'az'
     # print(character_range[1], character_range[0])
     # print(ord(character_range[1]) - ord(character_range[0]))

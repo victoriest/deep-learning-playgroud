@@ -84,8 +84,12 @@ def add_dataset_to_a_exist_emnist_npz_file(npz_file_path, added_dataset_path, ou
     x_delta, y_delta = __convertor(added_dataset_path)
     print(x_delta.shape, y_delta.shape)
     # 加载后的图片, 按照6:1分层训练集与测试集
-    random.shuffle(x_delta)
-    random.shuffle(y_delta)
+    seed = np.random.randint(1)
+    rand_state = np.random.RandomState(seed)
+    rand_state.shuffle(x_delta)
+    rand_state.seed(seed)
+    rand_state.shuffle(y_delta)
+
     len_of_delta = len(x_delta)
     len_of_delta_train = int(len_of_delta / 7)
     x_delta_train = x_delta[len_of_delta_train:]
