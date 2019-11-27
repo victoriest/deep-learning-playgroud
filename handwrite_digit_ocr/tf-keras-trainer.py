@@ -1,7 +1,7 @@
 import base64
 
 from handwrite_digit_ocr.dataset_utils import load_character_dataset, load_digit_dataset
-from handwrite_digit_ocr.ocr_model import ModelType, OcrModel, DataType
+from handwrite_digit_ocr.ocr_model import ModelType, OcrModel
 
 
 def character_ocr_train():

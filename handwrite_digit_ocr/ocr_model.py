@@ -18,13 +18,6 @@ class ModelType(Enum):
     RCNN = 3,
 
 
-class DataType(Enum):
-    Digit = 0,
-    DigitWithSpace = 1,
-    Character = 2,
-    CharacterFromA2K = 3,
-
-
 class OcrModel:
     @staticmethod
     def get_model(model_type=ModelType.SimpleCNN, num_of_classification=10):
