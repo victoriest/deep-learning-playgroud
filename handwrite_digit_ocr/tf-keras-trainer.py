@@ -3,28 +3,45 @@ import os
 
 import cv2
 import numpy as np
-from tensorflow.python.keras.callbacks import TensorBoard
+from tensorflow.python.keras.callbacks import TensorBoard, ModelCheckpoint, EarlyStopping
 from tensorflow.python.keras.models import load_model
 
 from handwrite_digit_ocr.dataset_utils import load_character_dataset, load_digit_dataset
 from handwrite_digit_ocr.ocr_model import ModelType, OcrModel
 
 
-def character_ocr_train():
+def character_ocr_train(output_model_name, model=None):
     x_train, y_train, x_test, y_test = load_character_dataset('E:/_dataset/RCNN/EMNIST-balanced-191127-added.npz', 'ak')
     print(x_train.shape, y_train.shape, x_test.shape, y_test.shape)
-    model = OcrModel.get_model(ModelType.RCNN, 11)
+
+    # 如果模型不传 则重新训练模型, 否则加载模型
+    if model is None:
+        model = OcrModel.get_model(ModelType.RCNN, 11)
+
     # model.summary()
 
     tensor_board_callback = TensorBoard(log_dir='./logs',  # log 目录
-                                        histogram_freq=0,  # 按照何等频率（epoch）来计算直方图，0为不计算
-                                        #                  batch_size=32,     # 用多大量的数据计算直方图
+                                        histogram_freq=1,  # 按照何等频率（epoch）来计算直方图，0为不计算
+                                        batch_size=32,  # 用多大量的数据计算直方图
                                         write_graph=True,  # 是否存储网络结构图
                                         write_grads=True,  # 是否可视化梯度直方图
                                         write_images=True,  # 是否可视化参数
                                         embeddings_freq=0,
                                         embeddings_layer_names=None,
                                         embeddings_metadata=None)
+
+    model_check_file_template = os.path.join("./models/", output_model_name + "-{epoch:02d}-{val_loss:.2f}.h5")
+
+    checkpoint_callback = ModelCheckpoint(
+        filepath=model_check_file_template, monitor='val_loss',
+        save_best_only=False, save_weights_only=False, period=5)
+
+    # 各种callback的ref: https://keras.io/zh/callbacks/
+    # lr_schedule = lambda epoch: 0.0005 * 0.4 ** epoch
+    # learning_rate = np.array([lr_schedule(i) for i in range(10)])
+    # change_learing_rate_callback = LearningRateScheduler(lambda epoch: float(learning_rate[epoch]), verbose=1)
+    early_stopping_callback = EarlyStopping(monitor='val_loss', patience=2, verbose=1)
+
     """
     shuffle和validation_split的顺序
     模型的fit函数有两个参数，shuffle用于将数据打乱，validation_split用于在没有提供验证集的时候，
@@ -34,16 +51,24 @@ def character_ocr_train():
     同样的，这个东西不会有任何错误报出来，因为Keras不可能知道你的数据有没有经过shuffle，
     保险起见如果你的数据是没shuffle过的，最好手动shuffle一下
     """
-    # np.random.shuffle(x_train)
-    # np.random.shuffle(y_train)
+    seed = np.random.randint(1)
+    rand_state = np.random.RandomState(seed)
+    rand_state.shuffle(x_train)
+    rand_state.seed(seed)
+    rand_state.shuffle(y_train)
 
     model.fit(x_train, y_train,
               batch_size=192,
-              epochs=25,
+              epochs=15,
               verbose=1,
               shuffle=True,
               validation_split=0.15,
-              callbacks=[tensor_board_callback])
+              callbacks=[tensor_board_callback,
+                         checkpoint_callback,
+                         early_stopping_callback])
+
+    model_check_file_template = os.path.join("./models/", output_model_name + ".h5")
+
     model.save('./model/model-EMNIST-RCNN-balanced-a-to-k-191127.h5')
 
 
@@ -118,4 +143,4 @@ def gen_request_json_for_character_ocr(img_arr):
 
 
 if __name__ == '__main__':
-    character_ocr_train()
+    character_ocr_train('model-EMNIST-RCNN-balanced-a-to-k-191127')
