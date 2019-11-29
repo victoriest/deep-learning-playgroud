@@ -2,34 +2,48 @@
 # Edit:2017-09-14 ~ 2017-09-17
 # @sima
 # %%
+import json
+import os
 import random
 
 import cv2
-from keras.layers.convolutional import Conv2D, MaxPooling2D, ZeroPadding2D
-from keras.layers.normalization import BatchNormalization
-from keras.layers.core import Reshape, Masking, Lambda, Permute
-from keras.layers import Input, Dense, Flatten
-from keras.preprocessing.sequence import pad_sequences
-from keras.layers.recurrent import GRU, LSTM
-from keras.layers.wrappers import Bidirectional
-from keras.models import Model
-from keras import backend as K
-from keras.preprocessing import image
-from keras.optimizers import Adam, SGD, Adadelta
-from keras import losses
-from keras.layers.wrappers import TimeDistributed
-from keras.callbacks import EarlyStopping, ModelCheckpoint, TensorBoard, ReduceLROnPlateau
-from keras.utils import plot_model
-from matplotlib import pyplot as plt
-
-import numpy as np
-import os
-from PIL import Image
-import json
-import threading
-
-import tensorflow as tf
 import keras.backend.tensorflow_backend as K
+import numpy as np
+import tensorflow as tf
+from keras import backend as K
+from keras.callbacks import EarlyStopping, ModelCheckpoint, TensorBoard, ReduceLROnPlateau
+from keras.layers import Input, Dense, Flatten
+from keras.layers.convolutional import Conv2D, MaxPooling2D, ZeroPadding2D
+from keras.layers.core import Lambda, Permute
+from keras.layers.normalization import BatchNormalization
+from keras.layers.recurrent import GRU
+from keras.layers.wrappers import Bidirectional
+from keras.layers.wrappers import TimeDistributed
+from keras.models import Model
+from keras.optimizers import Adam
+from keras.preprocessing import image
+
+from utils.random_uniform_number import RandomUniformNumber
+
+char = '0123456789'
+# with open('E:\deeplearn\OCR\chi_sim\随机语料\yu\char.txt', encoding='utf-8') as f:
+#     for ch in f.readlines():
+#         ch = ch.strip('\r\n')
+#         char = char + ch
+char = char + '^'
+print('nclass:', len(char))
+
+char_to_id = {j: i for i, j in enumerate(char)}
+id_to_char = {i: j for i, j in enumerate(char)}
+
+max_label_length = 5
+img_h = 42
+img_w = 152
+num_of_classes = len(char)
+rnn_unit = 256
+batch_size = 64
+
+image_generator = image.ImageDataGenerator(rescale=1.0 / 255)
 
 
 def get_session(gpu_fraction=0.6):
@@ -53,27 +67,6 @@ def ctc_lambda_func(args):
     return K.ctc_batch_cost(labels, y_pred, input_length, label_length)
 
 
-char = '0123456789'
-# with open('E:\deeplearn\OCR\chi_sim\随机语料\yu\char.txt', encoding='utf-8') as f:
-#     for ch in f.readlines():
-#         ch = ch.strip('\r\n')
-#         char = char + ch
-char = char + '^'
-print('nclass:', len(char))
-
-char_to_id = {j: i for i, j in enumerate(char)}
-id_to_char = {i: j for i, j in enumerate(char)}
-
-maxlabellength = 5
-img_h = 42
-img_w = 152
-nclass = len(char)
-rnnunit = 256
-batch_size = 64
-
-gen = image.ImageDataGenerator(rescale=1.0 / 255)
-
-
 def gen1(jsonpath, batchsize=64, maxlabellength=5, imagesize=(42, 152)):
     with open(jsonpath, 'r', encoding='utf-8') as f:
         image_label = json.load(f)
@@ -93,11 +86,11 @@ def gen2(jsonpath, imagepath, batchsize=64, maxlabellength=8, imagesize=(32, 248
     imagelabel = [i['label'] for _, i in image_label.items()]
     _imagefile = [i for i, j in image_label.items()]
     print('--begin gen2')
-    v = gen.flow_from_directory(imagepath, target_size=imagesize,
-                                color_mode='grayscale', class_mode='sparse', shuffle=True,
-                                # save_to_dir=r'E:\deeplearn\OCR\Sample\fixsizetrain',
-                                batch_size=batchsize
-                                )
+    v = image_generator.flow_from_directory(imagepath, target_size=imagesize,
+                                            color_mode='grayscale', class_mode='sparse', shuffle=True,
+                                            # save_to_dir=r'E:\deeplearn\OCR\Sample\fixsizetrain',
+                                            batch_size=batchsize
+                                            )
 
     v.classes = np.array([i for i in range(len(imagelabel))])
     v.filenames = _imagefile
@@ -131,32 +124,6 @@ def gen2(jsonpath, imagepath, batchsize=64, maxlabellength=8, imagesize=(32, 248
         yield (inputs, outputs)
 
 
-class random_uniform_num():
-    """
-    均匀随机，确保每轮每个只出现一次
-    """
-    def __init__(self, total):
-        self.total = total
-        self.range = [i for i in range(total)]
-        np.random.shuffle(self.range)
-        self.index = 0
-
-    def get(self, batchsize):
-        r_n = []
-        if (self.index + batchsize > self.total):
-            r_n_1 = self.range[self.index:self.total]
-            np.random.shuffle(self.range)
-            self.index = (self.index + batchsize) - self.total
-            r_n_2 = self.range[0:self.index]
-            r_n.extend(r_n_1)
-            r_n.extend(r_n_2)
-
-        else:
-            r_n = self.range[self.index:self.index + batchsize]
-            self.index = self.index + batchsize
-        return r_n
-
-
 def gen_crnn_batch():
     batchsize = 64
     data_path = []
@@ -169,10 +136,10 @@ def gen_crnn_batch():
     random.shuffle(data_path)
 
     print(len(data_path))
-    r_n = random_uniform_num(len(data_path))
+    r_n = RandomUniformNumber(len(data_path))
 
     x = np.zeros((64, 42, 152, 1), dtype=np.float)
-    labels = np.ones([batchsize, maxlabellength]) * 10000
+    labels = np.ones([batchsize, max_label_length]) * 10000
     input_length = np.zeros([batchsize, 1])
     label_length = np.zeros([batchsize, 1])
 
@@ -199,75 +166,85 @@ def gen_crnn_batch():
         yield (inputs, outputs)
 
 
-input = Input(shape=(img_h, None, 1), name='the_input')
-m = Conv2D(64, kernel_size=(3, 3), activation='relu', padding='same', name='conv1')(input)
-m = MaxPooling2D(pool_size=(2, 2), strides=(2, 2), name='pool1')(m)
-m = Conv2D(128, kernel_size=(3, 3), activation='relu', padding='same', name='conv2')(m)
-m = MaxPooling2D(pool_size=(2, 2), strides=(2, 2), name='pool2')(m)
-m = Conv2D(256, kernel_size=(3, 3), activation='relu', padding='same', name='conv3')(m)
-m = BatchNormalization(axis=3)(m)
-m = Conv2D(256, kernel_size=(3, 3), activation='relu', padding='same', name='conv4')(m)
+def gen_crnn_model():
+    input = Input(shape=(img_h, None, 1), name='the_input')
+    m = Conv2D(64, kernel_size=(3, 3), activation='relu', padding='same', name='conv1')(input)
+    m = MaxPooling2D(pool_size=(2, 2), strides=(2, 2), name='pool1')(m)
+    m = Conv2D(128, kernel_size=(3, 3), activation='relu', padding='same', name='conv2')(m)
+    m = MaxPooling2D(pool_size=(2, 2), strides=(2, 2), name='pool2')(m)
+    m = Conv2D(256, kernel_size=(3, 3), activation='relu', padding='same', name='conv3')(m)
+    m = BatchNormalization(axis=3)(m)
+    m = Conv2D(256, kernel_size=(3, 3), activation='relu', padding='same', name='conv4')(m)
 
-m = ZeroPadding2D(padding=(0, 1))(m)
-m = MaxPooling2D(pool_size=(2, 2), strides=(2, 1), padding='valid', name='pool3')(m)
+    m = ZeroPadding2D(padding=(0, 1))(m)
+    m = MaxPooling2D(pool_size=(2, 2), strides=(2, 1), padding='valid', name='pool3')(m)
 
-m = Conv2D(512, kernel_size=(3, 3), activation='relu', padding='same', name='conv5')(m)
-m = BatchNormalization(axis=3)(m)
-m = Conv2D(512, kernel_size=(3, 3), activation='relu', padding='same', name='conv6')(m)
+    m = Conv2D(512, kernel_size=(3, 3), activation='relu', padding='same', name='conv5')(m)
+    m = BatchNormalization(axis=3)(m)
+    m = Conv2D(512, kernel_size=(3, 3), activation='relu', padding='same', name='conv6')(m)
 
-m = ZeroPadding2D(padding=(0, 1))(m)
-m = MaxPooling2D(pool_size=(2, 2), strides=(2, 1), padding='valid', name='pool4')(m)
-m = Conv2D(512, kernel_size=(2, 2), activation='relu', padding='valid', name='conv7')(m)
-m = BatchNormalization(axis=3)(m)
+    m = ZeroPadding2D(padding=(0, 1))(m)
+    m = MaxPooling2D(pool_size=(2, 2), strides=(2, 1), padding='valid', name='pool4')(m)
+    m = Conv2D(512, kernel_size=(2, 2), activation='relu', padding='valid', name='conv7')(m)
+    m = BatchNormalization(axis=3)(m)
 
-m = Permute((2, 1, 3), name='permute')(m)
-m = TimeDistributed(Flatten(), name='timedistrib')(m)
+    m = Permute((2, 1, 3), name='permute')(m)
+    m = TimeDistributed(Flatten(), name='timedistrib')(m)
 
-m = Bidirectional(GRU(rnnunit, return_sequences=True, implementation=2), name='blstm1')(m)
-# m = Bidirectional(LSTM(rnnunit,return_sequences=True),name='blstm1')(m)
-m = Dense(rnnunit, name='blstm1_out', activation='linear', )(m)
-# m = Bidirectional(LSTM(rnnunit,return_sequences=True),name='blstm2')(m)
-m = Bidirectional(GRU(rnnunit, return_sequences=True, implementation=2), name='blstm2')(m)
-y_pred = Dense(nclass, name='blstm2_out', activation='softmax')(m)
+    m = Bidirectional(GRU(rnn_unit, return_sequences=True, implementation=2), name='blstm1')(m)
+    # m = Bidirectional(LSTM(rnnunit,return_sequences=True),name='blstm1')(m)
+    m = Dense(rnn_unit, name='blstm1_out', activation='linear', )(m)
+    # m = Bidirectional(LSTM(rnnunit,return_sequences=True),name='blstm2')(m)
+    m = Bidirectional(GRU(rnn_unit, return_sequences=True, implementation=2), name='blstm2')(m)
+    y_pred = Dense(num_of_classes, name='blstm2_out', activation='softmax')(m)
 
-basemodel = Model(inputs=input, outputs=y_pred)
-basemodel.summary()
+    basemodel = Model(inputs=input, outputs=y_pred)
+    basemodel.summary()
 
-labels = Input(name='the_labels', shape=[maxlabellength], dtype='float32')
-input_length = Input(name='input_length', shape=[1], dtype='int64')
-label_length = Input(name='label_length', shape=[1], dtype='int64')
+    labels = Input(name='the_labels', shape=[max_label_length], dtype='float32')
+    input_length = Input(name='input_length', shape=[1], dtype='int64')
+    label_length = Input(name='label_length', shape=[1], dtype='int64')
 
-loss_out = Lambda(ctc_lambda_func, output_shape=(1,), name='ctc')([y_pred, labels, input_length, label_length])
+    loss_out = Lambda(ctc_lambda_func, output_shape=(1,), name='ctc')([y_pred, labels, input_length, label_length])
 
-model = Model(inputs=[input, labels, input_length, label_length], outputs=loss_out)
+    model = Model(inputs=[input, labels, input_length, label_length], outputs=loss_out)
 
-adam = Adam()
+    adam = Adam()
 
-model.compile(loss={'ctc': lambda y_true, y_pred: y_pred}, optimizer=adam, metrics=['accuracy'])
+    model.compile(loss={'ctc': lambda y_true, y_pred: y_pred}, optimizer=adam, metrics=['accuracy'])
 
-earlystop = EarlyStopping(patience=10)
+    return model
 
-# 创建一个权重文件保存文件夹logs
-log_dir = "./logs/"
-model_dir = './model/'
-# 记录所有训练过程，每隔一定步数记录最大值
-tensorboard = TensorBoard(log_dir=log_dir)
-checkpoint = ModelCheckpoint(model_dir + "crnn.h5",
-                             monitor="loss",
-                             mode='min',
-                             save_best_only=True,
-                             verbose=1,
-                             period=1)
-# Set a learning rate annealer
-learning_rate_reduction = ReduceLROnPlateau(monitor='val_acc',
-                                            patience=3,
-                                            verbose=1,
-                                            factor=0.5,
-                                            min_lr=0.00001)
 
-res = model.fit_generator(gen_crnn_batch(),
-                          steps_per_epoch=500000 // batch_size,
-                          epochs=100,
-                          validation_steps=1000 // batch_size,
-                          callbacks=[earlystop, checkpoint, tensorboard, learning_rate_reduction],
-                          verbose=1)
+def train_crnn_model(crnn_model):
+    earlystop = EarlyStopping(patience=10)
+
+    # 创建一个权重文件保存文件夹logs
+    log_dir = "./logs/"
+    model_dir = './model/'
+    # 记录所有训练过程，每隔一定步数记录最大值
+    tensorboard = TensorBoard(log_dir=log_dir)
+    checkpoint = ModelCheckpoint(model_dir + "crnn.h5",
+                                 monitor="loss",
+                                 mode='min',
+                                 save_best_only=True,
+                                 verbose=1,
+                                 period=1)
+    # Set a learning rate annealer
+    learning_rate_reduction = ReduceLROnPlateau(monitor='val_acc',
+                                                patience=3,
+                                                verbose=1,
+                                                factor=0.5,
+                                                min_lr=0.00001)
+
+    res = crnn_model.fit_generator(gen_crnn_batch(),
+                                   steps_per_epoch=500000 // batch_size,
+                                   epochs=100,
+                                   validation_steps=1000 // batch_size,
+                                   callbacks=[earlystop, checkpoint, tensorboard, learning_rate_reduction],
+                                   verbose=1)
+
+
+if __name__ == '__main__':
+    model = gen_crnn_model()
+    train_crnn_model(model)

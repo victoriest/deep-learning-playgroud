@@ -3,11 +3,36 @@ import os
 
 import cv2
 import numpy as np
+import tensorflow as tf
 from tensorflow.python.keras.callbacks import TensorBoard, ModelCheckpoint, EarlyStopping
 from tensorflow.python.keras.models import load_model
 
 from handwrite_digit_ocr.dataset_utils import load_character_dataset, load_digit_dataset
 from handwrite_digit_ocr.ocr_model import ModelType, OcrModel
+
+
+def set_model(self, model):
+    self.model = model
+    self.sess = K.get_session()
+    if self.histogram_freq and self.merged is None:
+        for layer in self.model.layers:
+
+            for weight in layer.weights:
+                tf.summary.histogram(weight.name, weight)
+                if self.write_images:
+                    w_img = tf.squeeze(weight)
+                    shape = w_img.get_shape()
+                    if len(shape) > 1 and shape[0] > shape[1]:
+                        w_img = tf.transpose(w_img)
+                    if len(shape) == 1:
+                        w_img = tf.expand_dims(w_img, 0)
+                    w_img = tf.expand_dims(tf.expand_dims(w_img, 0), -1)
+                    tf.summary.image(weight.name, w_img)
+
+            if hasattr(layer, 'output'):
+                tf.summary.histogram('{}_out'.format(layer.name),
+                                     layer.output)
+    self.merged = tf.summary.merge_all()
 
 
 def character_ocr_train(output_model_name, model=None):
@@ -22,13 +47,14 @@ def character_ocr_train(output_model_name, model=None):
 
     tensor_board_callback = TensorBoard(log_dir='./logs',  # log 目录
                                         histogram_freq=1,  # 按照何等频率（epoch）来计算直方图，0为不计算
-                                        batch_size=32,  # 用多大量的数据计算直方图
+                                        batch_size=192,  # 用多大量的数据计算直方图
                                         write_graph=True,  # 是否存储网络结构图
                                         write_grads=True,  # 是否可视化梯度直方图
-                                        write_images=True,  # 是否可视化参数
+                                        write_images=False,  # 是否可视化参数
                                         embeddings_freq=0,
                                         embeddings_layer_names=None,
                                         embeddings_metadata=None)
+    tensor_board_callback.set_model(model)
 
     model_check_file_template = os.path.join("./models/", output_model_name + "-{epoch:02d}-{val_loss:.2f}.h5")
 
@@ -69,7 +95,7 @@ def character_ocr_train(output_model_name, model=None):
 
     model_check_file_template = os.path.join("./models/", output_model_name + ".h5")
 
-    model.save('./model/model-EMNIST-RCNN-balanced-a-to-k-191127.h5')
+    model.save(model_check_file_template)
 
 
 def character_ocr_evaluate():
@@ -143,4 +169,4 @@ def gen_request_json_for_character_ocr(img_arr):
 
 
 if __name__ == '__main__':
-    character_ocr_train('model-EMNIST-RCNN-balanced-a-to-k-191127')
+    character_ocr_train('model-EMNIST-RCNN-balanced-a-to-k-191129')

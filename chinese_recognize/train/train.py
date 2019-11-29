@@ -13,6 +13,7 @@ from keras.models import Model
 from tensorflow.python.ops import ctc_ops as ctc
 
 from chinese_recognize.densenet import densenet
+from utils.random_uniform_number import RandomUniformNumber
 
 alphabet_en = u"""_ abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890,.<>/?;:'"[]{}!@#$%^&*()-=+\|`"""
 character_en = u"""_|abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890#'",.:;-()?*!/&+"""
@@ -47,33 +48,6 @@ def readfile(filename):
     return dic
 
 
-class random_uniform_num():
-    """
-    均匀随机，确保每轮每个只出现一次
-    """
-
-    def __init__(self, total):
-        self.total = total
-        self.range = [i for i in range(total)]
-        np.random.shuffle(self.range)
-        self.index = 0
-
-    def get(self, batchsize):
-        r_n = []
-        if (self.index + batchsize > self.total):
-            r_n_1 = self.range[self.index:self.total]
-            np.random.shuffle(self.range)
-            self.index = (self.index + batchsize) - self.total
-            r_n_2 = self.range[0:self.index]
-            r_n.extend(r_n_1)
-            r_n.extend(r_n_2)
-        else:
-            r_n = self.range[self.index: self.index + batchsize]
-            self.index = self.index + batchsize
-
-        return r_n
-
-
 def gen(data_file, image_path, batchsize=128, maxlabellength=10, imagesize=(32, 280)):
     image_label = readfile(data_file)
     _imagefile = [i for i, j in image_label.items()]
@@ -82,7 +56,7 @@ def gen(data_file, image_path, batchsize=128, maxlabellength=10, imagesize=(32, 
     input_length = np.zeros([batchsize, 1])
     label_length = np.zeros([batchsize, 1])
 
-    r_n = random_uniform_num(len(_imagefile))
+    r_n = RandomUniformNumber(len(_imagefile))
     _imagefile = np.array(_imagefile)
     while 1:
         shufimagefile = _imagefile[r_n.get(batchsize)]
@@ -116,7 +90,7 @@ def gen_en(image_label, image_path, batchsize=128, maxlabellength=10, imagesize=
     input_length = np.zeros([batchsize, 1])
     label_length = np.zeros([batchsize, 1])
 
-    r_n = random_uniform_num(len(_imagefile))
+    r_n = RandomUniformNumber(len(_imagefile))
     _imagefile = np.array(_imagefile)
     while 1:
         shufimagefile = _imagefile[r_n.get(batchsize)]
