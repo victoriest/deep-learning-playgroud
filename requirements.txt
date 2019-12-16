@@ -1,5 +1,5 @@
 deprecated==1.2.7
-tensorflow-gpu==1.13.1
+tensorflow-gpu==1.15.0
 absl-py==0.7.0
 astor==0.7.1
 cycler==0.10.0
