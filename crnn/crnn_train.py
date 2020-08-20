@@ -42,7 +42,7 @@ img_w = 152
 num_of_classes = len(char)
 rnn_unit = 256
 batch_size = 64
-
+model = None
 image_generator = image.ImageDataGenerator(rescale=1.0 / 255)
 
 
@@ -125,9 +125,8 @@ def gen2(jsonpath, imagepath, batchsize=64, maxlabellength=8, imagesize=(32, 248
 
 
 def gen_crnn_batch():
-    batchsize = 64
     data_path = []
-    g = os.walk('C:/_project/_data_crnn_train')
+    g = os.walk('E:/_dataset/_data_crnn_train')
     for path, dir_list, file_list in g:
         for file_name in file_list:
             d = os.path.join(path, file_name)
@@ -138,16 +137,16 @@ def gen_crnn_batch():
     print(len(data_path))
     r_n = RandomUniformNumber(len(data_path))
 
-    x = np.zeros((64, 42, 152, 1), dtype=np.float)
-    labels = np.ones([batchsize, max_label_length]) * 10000
-    input_length = np.zeros([batchsize, 1])
-    label_length = np.zeros([batchsize, 1])
+    x = np.zeros((batch_size, img_h, 152, 1), dtype=np.float)
+    labels = np.ones([batch_size, max_label_length]) * 10000
+    input_length = np.zeros([batch_size, 1])
+    label_length = np.zeros([batch_size, 1])
 
     idx = 0
     while 1:
         batch_count = 0
-        for tag, dir_path in data_path[idx:(idx + batchsize)]:
-            if batch_count > batchsize:
+        for tag, dir_path in data_path[idx:(idx + batch_size)]:
+            if batch_count > batch_size:
                 break
             img = cv2.imread(dir_path, 0).reshape(-1, 42, 152, 1).astype('float32') / 255.0
             x[batch_count] = img
@@ -162,8 +161,8 @@ def gen_crnn_batch():
             'input_length': input_length,
             'label_length': label_length
         }
-        outputs = {'ctc': np.zeros([batchsize])}
-        yield (inputs, outputs)
+        outputs = {'ctc': np.zeros([batch_size])}
+        yield inputs, outputs
 
 
 def gen_crnn_model():
@@ -201,7 +200,7 @@ def gen_crnn_model():
     basemodel = Model(inputs=input, outputs=y_pred)
     basemodel.summary()
 
-    labels = Input(name='the_labels', shape=[max_label_length], dtype='float32')
+    labels = Input(name='the_labels', shape=[None], dtype='float32')
     input_length = Input(name='input_length', shape=[1], dtype='int64')
     label_length = Input(name='label_length', shape=[1], dtype='int64')
 
@@ -213,7 +212,7 @@ def gen_crnn_model():
 
     model.compile(loss={'ctc': lambda y_true, y_pred: y_pred}, optimizer=adam, metrics=['accuracy'])
 
-    return model
+    return basemodel, model
 
 
 def train_crnn_model(crnn_model):
@@ -245,6 +244,45 @@ def train_crnn_model(crnn_model):
                                    verbose=1)
 
 
+def decode(pred):
+    char_list = []
+    pred_text = pred.argmax(axis=2)[0]
+    for i in range(len(pred_text)):
+        if pred_text[i] != num_of_classes - 1 and (
+                (not (i > 0 and pred_text[i] == pred_text[i - 1])) or (i > 1 and pred_text[i] == pred_text[i - 2])):
+            char_list.append(char[pred_text[i]])
+    return u''.join(char_list)
+
+
+def load_model(weights_path):
+    base_model, _ = gen_crnn_model()
+    base_model.load_weights(weights_path)
+    return base_model
+
+
+def digit_ocr(img):
+    global model
+    height, width = img.shape[0], img.shape[1]
+    scale = height * 1.0 / 42
+    width = int(width / scale)
+    img = cv2.resize(img, (width, img_h))
+    img = np.array(img).astype(np.float32) / 255.0
+
+    input_img = img.reshape([1, img_h, width, 1])
+
+    if model is None:
+        model = load_model('./model/crnn.h5')
+    y_pred = model.predict(input_img)
+    y_pred = y_pred[:, :, :]
+
+    out = decode(y_pred)
+
+    return out
+
+
 if __name__ == '__main__':
     model = gen_crnn_model()
     train_crnn_model(model)
+
+    # img = cv2.imread("./1.jpg", 0)
+    # print(digit_ocr(img))

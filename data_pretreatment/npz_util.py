@@ -118,22 +118,31 @@ def save_img_data_to_file(train_data_path, test_data_path, output_npz_path):
         for path, dir_list, file_list in g:
             for file_name in file_list:
                 sss = file_name.split("_")
-                output_y.append(int(sss[0]) - 1)
+                idx = sss[0]
+                if sss[0] is 't':
+                    idx = 1
+
+                elif sss[0] is 'f':
+                    idx = 0
+
+                elif sss[0] is 'h':
+                    idx = 2
+                output_y.append(idx)
                 d = os.path.join(path, file_name)
                 t_img = cv2.imread(d)
                 t_img = cv2.resize(t_img, (28, 28))
                 # t_img = cv2.cvtColor(t_img, cv2.COLOR_RGB2GRAY)
                 output_x.append(t_img)
         output_x = np.array(output_x)
-        output_y = np_utils.to_categorical(output_y, num_classes=26)
+        output_y = np_utils.to_categorical(output_y, num_classes=3)
         return output_x, output_y
 
     x_train, y_train = __convertor(train_data_path)
     x_test, y_test = __convertor(test_data_path)
 
     print(x_test.shape, y_test.shape)
-
-    # np.savez(output_npz_path, x_train=x_train, y_train=y_train, x_test=x_test, y_test=y_test)
+    print(y_test)
+    np.savez(output_npz_path, x_train=x_train, y_train=y_train, x_test=x_test, y_test=y_test)
 
 
 if __name__ == '__main__':
@@ -148,10 +157,10 @@ if __name__ == '__main__':
     #                 __inverse_color(images[i]))
     #     print(i)
 
-    # save_img_data_to_file("E:/_dataset/EMNIST/balanced-train",
-    #                       "E:/_dataset/EMNIST/balanced-test",
-    #                       "E:/_dataset/EMNIST/EMNIST-balanced.npz")
+    save_img_data_to_file("E:/_dataset/t_f_tf_dataset/train",
+                          "E:/_dataset/t_f_tf_dataset/test",
+                          "E:/_dataset/t_f_tf_dataset/t_f_tf_dataset.npz")
 
-    add_dataset_to_a_exist_emnist_npz_file("E:/_dataset/RCNN/EMNIST-balanced-191127.npz",
-                                           "E:/_dataset/hot_offline_dataset_of_ocr/character_191127/",
-                                           "E:/_dataset/RCNN/EMNIST-balanced-191127-added.npz")
+    # add_dataset_to_a_exist_emnist_npz_file("E:/_dataset/RCNN/EMNIST-balanced-191127.npz",
+    #                                        "E:/_dataset/hot_offline_dataset_of_ocr/character_191127/",
+    #                                        "E:/_dataset/RCNN/EMNIST-balanced-191127-added.npz")
