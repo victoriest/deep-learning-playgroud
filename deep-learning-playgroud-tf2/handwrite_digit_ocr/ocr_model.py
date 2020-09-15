@@ -1,8 +1,10 @@
 from enum import Enum, unique
 
+import tensorflow as tf
 from tensorflow.keras import Sequential, Input, Model
 from tensorflow.keras import optimizers
 from tensorflow.keras.applications import VGG16
+from tensorflow.keras.applications.densenet import DenseNet121
 from tensorflow.keras.layers import BatchNormalization, Add, MaxPool2D
 from tensorflow.keras.layers import Conv2D, MaxPooling2D, Dropout, Flatten, Dense
 from tensorflow.keras.optimizers import RMSprop, SGD
@@ -16,6 +18,7 @@ class ModelType(Enum):
     MnistAcc997CNN = 1,
     Vgg16 = 2,
     RCNN = 3,
+    DenseNet121 = 4,
 
 
 class OcrModel:
@@ -29,7 +32,37 @@ class OcrModel:
             return OcrModel.__gen_vgg16_model(num_of_classification)
         elif model_type is ModelType.RCNN:
             return OcrModel.__gen__rcnn_model(num_of_classification)
+        elif model_type is ModelType.DenseNet121:
+            return OcrModel.__gen_dense_net_model(num_of_classification)
         return None
+
+    @staticmethod
+    def __gen_dense_net_model(num_of_classification=10):
+        """
+        DenseNet121
+        https://www.codenong.com/cs106834540/
+        :return:
+        """
+        # 使用tf.keras.applications中的DenseNet121网络，并且使用官方的预训练模型
+        covn_base = DenseNet121(weights='imagenet', include_top=False,
+                                input_shape=(32, 32, 3))
+        covn_base.trainable = True
+
+        # 冻结前面的层，训练最后5层
+        # for layers in covn_base.layers[:-5]:
+        #     layers.trainable = False
+        covn_base.summary()
+        # 构建模型
+        model = tf.keras.Sequential()
+        model.add(covn_base)
+        model.add(tf.keras.layers.GlobalAveragePooling2D())
+        model.add(tf.keras.layers.Dense(512, activation='relu'))
+        model.add(tf.keras.layers.Dropout(rate=0.5))
+        model.add(tf.keras.layers.Dense(num_of_classification, activation='softmax'))
+        model.compile(optimizer=tf.keras.optimizers.Adam(learning_rate=0.0001),
+                      loss=tf.keras.losses.CategoricalCrossentropy(from_logits=False),
+                      metrics=["accuracy"])  # 评价函数
+        return model
 
     @staticmethod
     def __gen_simple_cnn_model(num_of_classification=10):

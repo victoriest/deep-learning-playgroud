@@ -1,6 +1,8 @@
 import os
 
+import cv2
 import numpy as np
+from PIL import Image
 
 
 def load_digit_dataset(*args):
@@ -95,9 +97,50 @@ def extract_img_from_npz_file(npz_file_path, extract_dir_path):
     __convert(x_test, y_test, 'test')
 
 
+def 转换npz文件():
+    x_train, y_train, x_test, y_test = \
+        load_digit_dataset('E:/_dataset/dataset_28_28_3/mnist.npz', 'E:/_dataset/dataset_28_28_3/xbk.npz')
+
+    x_train_converted = []
+    x_test_converted = []
+
+    for x in x_train:
+        x = cv2.resize(x, (32, 32))
+        # x = cv2.cvtColor(x, cv2.COLOR_GRAY2RGB)
+        # x = x.reshape(32, 32, 3)
+        x_train_converted.append(x)
+
+    for x in x_test:
+        x = cv2.resize(x, (32, 32))
+        # x = cv2.cvtColor(x, cv2.COLOR_GRAY2RGB)
+        # x = x.reshape(32, 32, 3)
+        x_test_converted.append(x)
+
+
+
+    # def __convert(dataset_x, dataset_y, child_dir_name):
+    #     if not os.path.exists("./test"):
+    #         os.mkdir("./test")
+    #     child_dir = os.path.join("./test", child_dir_name)
+    #     if not os.path.exists(child_dir):
+    #         os.mkdir(child_dir)
+    #     idx = 0
+    #     for img in dataset_x:
+    #         jpg = Image.fromarray(img)
+    #         # print(dataset_y[idx], int(np.argmax(dataset_y[idx])), chr(int(np.argmax(dataset_y[idx])) + 97))
+    #         tag = str(int(np.argmax(dataset_y[idx])))
+    #         jpg.save(os.path.join(child_dir, str(tag) + '_' + str(idx) + '.jpg'))
+    #         idx += 1
+
+    # __convert(x_test, y_test, 'test')
+
+    np.savez('xbk_32.npz', x_train=x_train_converted, y_train=y_train, x_test=x_test_converted, y_test=y_test)
+
+
 if __name__ == '__main__':
-    extract_img_from_npz_file('E:/_dataset/RCNN/EMNIST-balanced-191127-added.npz',
-                              os.path.join(os.getcwd(), 'out_test'))
+    转换npz文件()
+    # extract_img_from_npz_file('E:/_dataset/RCNN/EMNIST-balanced-191127-added.npz',
+    #                           os.path.join(os.getcwd(), 'out_test'))
     # character_range = 'az'
     # print(character_range[1], character_range[0])
     # print(ord(character_range[1]) - ord(character_range[0]))

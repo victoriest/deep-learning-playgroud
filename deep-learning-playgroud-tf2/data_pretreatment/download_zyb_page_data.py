@@ -36,7 +36,7 @@ def down_load_image(url, dest_path, dest_file_name):
 
 
 if __name__ == '__main__':
-    result = load_csv("E:\\_dataset\\zyb_data_08_14.csv")
+    result = load_csv("E:\\_dataset\\zyb_data_09_07_B.csv")
     count = 0
     size = len(result)
     for item in result:
@@ -44,5 +44,5 @@ if __name__ == '__main__':
         dest_file_name = f_name_arr[0] + "_" + item[1] + "." + f_name_arr[1]
         img_url = URL_PREFIX + item[2]
         print("Doloading {}... ({}/{})".format(dest_file_name, count, size))
-        down_load_image(img_url, "E:\\_dataset\\zyb_data_0814\\" + item[3], dest_file_name)
+        down_load_image(img_url, "E:\\_dataset\\zyb_data_0907\\" + item[4], dest_file_name)
         count += 1

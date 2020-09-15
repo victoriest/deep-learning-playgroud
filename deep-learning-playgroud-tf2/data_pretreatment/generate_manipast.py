@@ -5,7 +5,7 @@ import cv2
 
 def generate_yolov4_manipast():
     f = open('train.txt', 'w')
-    g = os.walk("E:/darknet-release/data/imgs")
+    g = os.walk("E:/_dataset/zyb_mark_qnsc_data/mixed")
     lines = []
 
     for path, dir_list, file_list in g:
@@ -19,15 +19,15 @@ def generate_yolov4_manipast():
 
 def generate_crnn_manipast():
     f = open('E:/_dataset/annotation.txt', 'w')
-    g = os.walk("E:/_dataset/_data_crnn_train")
+    g = os.walk("E:/_dataset/zyb_opt_mark_data")
     lines = []
     for path, dir_list, file_list in g:
         for file_name in file_list:
             if os.path.splitext(file_name)[1] == '.jpg':
                 label = os.path.splitext(file_name)[0].split("_")[0]
                 print(os.path.join(path, file_name), os.path.splitext(file_name),
-                      "images/" + file_name + " " + label + "\n")
-                lines.append("images/" + file_name + " " + label + "\n")
+                      "img/" + file_name + " " + label + "\n")
+                lines.append("img/" + file_name + " " + label + "\n")
     f.writelines(lines)
     f.close()
 
@@ -62,4 +62,4 @@ def convert_to_32():
 
 
 if __name__ == '__main__':
-    convert_to_32()
+    generate_yolov4_manipast()

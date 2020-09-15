@@ -4,7 +4,7 @@ import os
 import cv2
 import numpy as np
 import tensorflow as tf
-from tensorflow.python.keras.callbacks import TensorBoard, ModelCheckpoint, EarlyStopping
+from tensorflow.python.keras.callbacks import TensorBoard, ModelCheckpoint, EarlyStopping, LearningRateScheduler
 from tensorflow.python.keras.models import load_model
 
 from handwrite_digit_ocr.dataset_utils import load_character_dataset, load_digit_dataset
@@ -36,12 +36,13 @@ def set_model(self, model):
 
 
 def character_ocr_train(output_model_name, model=None):
-    x_train, y_train, x_test, y_test = load_character_dataset('E:/_dataset/RCNN/EMNIST-balanced-191127-added.npz', 'ak')
+    x_train, y_train, x_test, y_test = load_character_dataset('E:/_dataset/RCNN/EMNIST-balanced-191127-added.npz', 'ad')
+    # x_train, y_train, x_test, y_test = load_digit_dataset('E:/_dataset/t_f_tf_dataset/t_f_tf_dataset.npz')
     print(x_train.shape, y_train.shape, x_test.shape, y_test.shape)
 
     # 如果模型不传 则重新训练模型, 否则加载模型
     if model is None:
-        model = OcrModel.get_model(ModelType.RCNN, 11)
+        model = OcrModel.get_model(ModelType.RCNN, 4)
 
     # model.summary()
 
@@ -56,17 +57,17 @@ def character_ocr_train(output_model_name, model=None):
                                         embeddings_metadata=None)
     tensor_board_callback.set_model(model)
 
-    model_check_file_template = os.path.join("./models/", output_model_name + "-{epoch:02d}-{val_loss:.2f}.h5")
+    model_check_file_template = os.path.join("./model/", output_model_name + "-{epoch:02d}-{val_loss:.2f}.h5")
 
     checkpoint_callback = ModelCheckpoint(
         filepath=model_check_file_template, monitor='val_loss',
         save_best_only=False, save_weights_only=False, period=5)
 
     # 各种callback的ref: https://keras.io/zh/callbacks/
-    # lr_schedule = lambda epoch: 0.0005 * 0.4 ** epoch
-    # learning_rate = np.array([lr_schedule(i) for i in range(10)])
-    # change_learing_rate_callback = LearningRateScheduler(lambda epoch: float(learning_rate[epoch]), verbose=1)
-    early_stopping_callback = EarlyStopping(monitor='val_loss', patience=2, verbose=1)
+    lr_schedule = lambda epoch: 0.0005 * 0.4 ** epoch
+    learning_rate = np.array([lr_schedule(i) for i in range(50)])
+    change_learing_rate_callback = LearningRateScheduler(lambda epoch: float(learning_rate[epoch]), verbose=1)
+    early_stopping_callback = EarlyStopping(monitor='val_loss', patience=3, verbose=1)
 
     """
     shuffle和validation_split的顺序
@@ -85,22 +86,24 @@ def character_ocr_train(output_model_name, model=None):
 
     model.fit(x_train, y_train,
               batch_size=192,
-              epochs=15,
+              epochs=50,
               verbose=1,
               shuffle=True,
-              validation_split=0.15,
+              # validation_split=0.15,
+              validation_data=(x_test, y_test),
               callbacks=[tensor_board_callback,
                          checkpoint_callback,
+                         change_learing_rate_callback,
                          early_stopping_callback])
 
-    model_check_file_template = os.path.join("./models/", output_model_name + ".h5")
+    model_check_file_template = os.path.join("./model/", output_model_name + ".h5")
 
     model.save(model_check_file_template)
 
 
 def character_ocr_evaluate():
     x_train, y_train, x_test, y_test = load_character_dataset('E:/_dataset/RCNN/EMNIST-balanced-191127-added.npz', 'ak')
-    model = load_model('./model/model-EMNIST-RCNN-balanced-a-to-k-191127.h5')
+    model = load_model('./model/model-EMNIST-RCNN-balanced-a-to-g-200511.h5')
     loss_and_metrics1 = model.evaluate(x_test, y_test, verbose=1)
     print(
         "threshold_data_2nd_check -- Accuracy: {0}%, Loss: {1}".format(loss_and_metrics1[1] * 100,
@@ -108,18 +111,18 @@ def character_ocr_evaluate():
 
 
 def character_ocr_predict():
-    model = load_model('./model/model-EMNIST-RCNN-balanced-a-to-k-191127.h5')
+    model = load_model('./model/model-t_f_tf_dataset.h5')
     img_arr = []
-    g = os.walk('./test')
+    g = os.walk('./out_test')
     for path, dir_list, file_list in g:
         for file_name in file_list:
-            img_arr.append(image_to_base64("./test/" + file_name))
-            t_img = cv2.imread("./test/" + file_name, 0)
+            img_arr.append(image_to_base64("./out_test/" + file_name))
+            t_img = cv2.imread("./out_test/" + file_name, 0)
             t_img = cv2.resize(t_img, (28, 28))
             t_img = cv2.cvtColor(t_img, cv2.COLOR_GRAY2RGB)
             t_img = t_img.reshape(-1, 28, 28, 3)
             predict_result = model.predict(t_img)
-            print(file_name, np.argmax(predict_result), chr(int(np.argmax(predict_result)) + 97),
+            print(file_name, np.argmax(predict_result), int(np.argmax(predict_result)),
                   predict_result[0][np.argmax(predict_result)])
     # gen_request_json_for_character_ocr(img_arr)
     #
@@ -169,4 +172,5 @@ def gen_request_json_for_character_ocr(img_arr):
 
 
 if __name__ == '__main__':
-    character_ocr_train('model-EMNIST-RCNN-balanced-a-to-k-191129')
+    character_ocr_train('model-EMNIST-RCNN-balanced-a-to-d-200715')
+    # character_ocr_predict()
