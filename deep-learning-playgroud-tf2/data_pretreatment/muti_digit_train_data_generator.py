@@ -7,6 +7,10 @@ import string
 
 import cv2
 import numpy as np
+from PIL import Image, ImageFilter
+from trdg import background_generator, distorsion_generator
+
+from utils.image_converter import cv2_to_pil, pil_to_cv2
 
 
 def add_noise(img, percetage=0.02):
@@ -22,6 +26,57 @@ def add_noise(img, percetage=0.02):
     kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (np.random.randint(1, 2), np.random.randint(1, 16)))
     img = cv2.dilate(img, kernel)
     return img
+
+
+def add_skewing(img, mask, skewing_angle=10, random_skew=True):
+    random_angle = random.randint(0 - skewing_angle, skewing_angle)
+    rotated_img = img.rotate(
+        skewing_angle if not random_skew else random_angle, expand=1,
+        fillcolor=(255, 255, 255)
+    )
+    rotated_mask = mask.rotate(
+        skewing_angle if not random_skew else random_angle, expand=1
+    )
+    return rotated_img, rotated_mask
+
+
+def add_distorsion(img, mask):
+    distorsion_type = random.randint(0, 3)
+    distorsion_orientation = random.randint(0, 2)
+    if distorsion_type == 0:
+        distorted_img = img  # Mind = blown
+        distorted_mask = mask
+    elif distorsion_type == 1:
+        distorted_img, distorted_mask = distorsion_generator.sin(
+            img,
+            mask,
+            vertical=(distorsion_orientation == 0 or distorsion_orientation == 2),
+            horizontal=(distorsion_orientation == 1 or distorsion_orientation == 2),
+        )
+    elif distorsion_type == 2:
+        distorted_img, distorted_mask = distorsion_generator.cos(
+            img,
+            mask,
+            vertical=(distorsion_orientation == 0 or distorsion_orientation == 2),
+            horizontal=(distorsion_orientation == 1 or distorsion_orientation == 2),
+        )
+    else:
+        distorted_img, distorted_mask = distorsion_generator.random(
+            img,
+            mask,
+            vertical=(distorsion_orientation == 0 or distorsion_orientation == 2),
+            horizontal=(distorsion_orientation == 1 or distorsion_orientation == 2),
+        )
+    return distorted_img, distorted_mask
+
+
+def add_blurring(img, mask, blur=2):
+    gaussian_filter = ImageFilter.GaussianBlur(
+        radius=random.randint(0, blur)
+    )
+    img = img.filter(gaussian_filter)
+    mask = mask.filter(gaussian_filter)
+    return img, mask
 
 
 def get_random_file_suffix():
@@ -87,8 +142,16 @@ def gen_space_img_data():
     return img
 
 
-def gen_variable_length_digit():
-    mnist_out = np.load('E:/_dataset/RCNN/mnist_with_space_train.npz')
+def gen_variable_length_digit(gen_num=100000,
+                              cell_count=5,
+                              enable_random_digit=True,
+                              enable_noise=True,
+                              enable_skewing=True,
+                              enable_distortion=True,
+                              enable_blurring=True,
+                              dataset_path='E:/_dataset/digit_and_character/mnist_with_space_train.npz',
+                              output_path='e:/_dataset/_digit_crnn_train_32_offset/'):
+    mnist_out = np.load(dataset_path)
     mnist_x_train, mnist_y_train = mnist_out['x_train'], mnist_out['y_train']
     print(mnist_x_train.shape)
     print(mnist_y_train.shape)
@@ -103,14 +166,18 @@ def gen_variable_length_digit():
     data_len = len(filted)
     print(data_len)
 
-    for num in range(500000):
+    for num in range(gen_num):
+        img = np.ones((cell_h, cell_w * cell_count + 2 * cell_count, 1), np.uint8) * 255
+
         # 生成随机2-5个空白格子
-        cell_count = 5
-        img = np.ones((cell_h, cell_w * cell_count + 2 * 5, 1), np.uint8) * 255
-        digit_count = np.random.randint(1, 6)
-        # digit_count = 5
+        digit_count = cell_count
+        if enable_random_digit:
+            digit_count = np.random.randint(2, cell_count + 1)
+
         # 将格子随机腐蚀
-        img = add_noise(img)
+        if enable_noise:
+            img = add_noise(img)
+
         # 随机将tag中的数字丢入格子中
         tag_str = ""
         offset_w = 0
@@ -151,8 +218,63 @@ def gen_variable_length_digit():
         M = np.float32([[1, 0, np.random.randint(-4, 4)], [0, 1, np.random.randint(-4, 4)]])
         img = cv2.warpAffine(img, M, (cols, rows))
         img = cv2.bitwise_not(img)
-        cv2.imwrite("e:/_dataset/_digit_crnn_train_32_offset/" + t_file_name, img)
+
+        img = cv2_to_pil(img)
+        mask = Image.new("RGB", (cols, rows), (0, 0, 0))
+
+        random_s = random.randint(0, 3)
+        if enable_skewing and random_s == 1:
+            img, mask = add_skewing(img, mask)
+
+        if enable_distortion and random_s == 2:
+            img, mask = add_distorsion(img, mask)
+
+        if enable_blurring and random_s == 3:
+            img, mask = add_blurring(img, mask)
+
+        img = img.resize((cols, rows), Image.ANTIALIAS)
+        mask = mask.resize((cols, rows), Image.ANTIALIAS)
+        background_type = random.randint(0, 2)
+
+        if background_type == 0:
+            background_img = background_generator.gaussian_noise(
+                rows, cols,
+            )
+        elif background_type == 1:
+            background_img = background_generator.plain_white(
+                rows, cols,
+            )
+        elif background_type == 2:
+            background_img = background_generator.quasicrystal(
+                rows, cols,
+            )
+        background_mask = Image.new(
+            "RGB", (cols, rows), (0, 0, 0)
+        )
+        img = transparent_back(img)
+        print(random_s, background_type, img.width, img.height, background_img.width, background_img.height)
+        background_img.paste(img, (0, 0), img)
+        background_mask.paste(mask, (0, 0))
+
+        img = pil_to_cv2(background_img)
+        mask = pil_to_cv2(background_mask)
+        cv2.imwrite(output_path + t_file_name, img)
         # show_image(tag_str, img)
+
+
+# 以第一个像素为准，相同色改为透明
+def transparent_back(img):
+    img = img.convert('RGBA')
+    L, H = img.size
+    color_0 = img.getpixel((0, 0))
+    for h in range(H):
+        for l in range(L):
+            dot = (l, h)
+            color_1 = img.getpixel(dot)
+            if color_1 == color_0:
+                color_1 = color_1[:-1] + (0,)
+                img.putpixel(dot, color_1)
+    return img
 
 
 def show_image(txt, img):
@@ -189,4 +311,5 @@ if __name__ == "__main__":
     # cv2.waitKey(0)
     # cv2.destroyAllWindows()
 
-    gen_variable_length_digit()
+    gen_variable_length_digit(enable_random_digit=False,
+                              output_path='e:/_dataset/_digit_crnn_train_32_offset_0925/')
