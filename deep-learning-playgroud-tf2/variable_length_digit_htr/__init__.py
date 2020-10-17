@@ -5,7 +5,7 @@ num_of_classes = len(char_list)
 rnn_unit = 256
 
 img_h = 32
-img_w = 180
+img_w = 170
 batch_size = 64
 max_label_length = 10
 

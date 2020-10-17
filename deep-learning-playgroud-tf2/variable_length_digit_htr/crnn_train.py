@@ -1,7 +1,3 @@
-# CRNN
-# Edit:2017-09-14 ~ 2017-09-17
-# @sima
-# %%
 import json
 import os
 import random
@@ -21,6 +17,7 @@ from tensorflow.keras.layers import TimeDistributed
 from tensorflow.keras.models import Model
 from tensorflow.keras.optimizers import Adam
 from tensorflow.keras.preprocessing import image
+from tensorflow.python.keras.layers import LSTM
 
 from utils.random_uniform_number import RandomUniformNumber
 
@@ -56,9 +53,6 @@ def get_session(gpu_fraction=0.6):
             gpu_options=gpu_options, intra_op_parallelism_threads=num_threads))
     else:
         return tf.Session(config=tf.ConfigProto(gpu_options=gpu_options))
-
-
-# K.set_session(get_session())
 
 
 def ctc_lambda_func(args):
@@ -125,7 +119,7 @@ def gen2(jsonpath, imagepath, batchsize=64, maxlabellength=8, imagesize=(32, 248
 
 def gen_crnn_batch():
     data_path = []
-    g = os.walk('E:/_dataset/_data_crnn_train')
+    g = os.walk('E:/_dataset/_digit_crnn_train_32_offset_0925')
     for path, dir_list, file_list in g:
         for file_name in file_list:
             d = os.path.join(path, file_name)
@@ -189,11 +183,11 @@ def gen_crnn_model():
     m = Permute((2, 1, 3), name='permute')(m)
     m = TimeDistributed(Flatten(), name='timedistrib')(m)
 
-    m = Bidirectional(GRU(rnn_unit, return_sequences=True, implementation=2), name='blstm1')(m)
-    # m = Bidirectional(LSTM(rnnunit,return_sequences=True),name='blstm1')(m)
+    # m = Bidirectional(GRU(rnn_unit, return_sequences=True, implementation=2), name='blstm1')(m)
+    m = Bidirectional(LSTM(rnn_unit,return_sequences=True),name='blstm1')(m)
     m = Dense(rnn_unit, name='blstm1_out', activation='linear', )(m)
-    # m = Bidirectional(LSTM(rnnunit,return_sequences=True),name='blstm2')(m)
-    m = Bidirectional(GRU(rnn_unit, return_sequences=True, implementation=2), name='blstm2')(m)
+    m = Bidirectional(LSTM(rnn_unit,return_sequences=True),name='blstm2')(m)
+    # m = Bidirectional(GRU(rnn_unit, return_sequences=True, implementation=2), name='blstm2')(m)
     y_pred = Dense(num_of_classes, name='blstm2_out', activation='softmax')(m)
 
     basemodel = Model(inputs=input, outputs=y_pred)
@@ -254,25 +248,25 @@ def decode(pred):
 
 
 if __name__ == '__main__':
-    # model = gen_crnn_model()
+    # _, model = gen_crnn_model()
     # train_crnn_model(model)
 
-    img = cv2.imread("./6.jpg", 0)
+    img = cv2.imread("./20200926111203.jpg", 0)
     print(img.shape)
     height, width = img.shape[0], img.shape[1]
-    scale = height * 1.0 / 42
+    scale = height * 1.0 / 32
     print(scale)
     width = int(width / scale)
     print((width, img_h))
     img = cv2.resize(img, (width, img_h))
-    cv2.imwrite("xxx.jpg", img)
+    # cv2.imwrite("xxx.jpg", img)
     img = np.array(img).astype(np.float32) / 255.0
 
     X = img.reshape([1, img_h, width, 1])
 
-    basemodel, model = gen_crnn_model()
-    basemodel.load_weights('./model/crnn.h5')
-    y_pred = basemodel.predict(X)
+    model = tf.keras.models.load_model('./model/crnn_200925.h5')
+    # basemodel.load_weights('./model/crnn_200925.h5')
+    y_pred = model.predict(X)
     y_pred = y_pred[:, :, :]
 
     out = decode(y_pred)

@@ -5,12 +5,12 @@ import cv2
 
 def generate_yolov4_manipast():
     f = open('train.txt', 'w')
-    g = os.walk("E:/_dataset/zyb_mark_qnsc_data/mixed")
+    g = os.walk("E:/_dataset/zyb_stucode_data")
     lines = []
 
     for path, dir_list, file_list in g:
         for file_name in file_list:
-            if os.path.splitext(file_name)[1] == '.jpg':
+            if os.path.splitext(file_name)[1] == '.jpg' or os.path.splitext(file_name)[1] == '.png':
                 print(os.path.join(path, file_name), os.path.splitext(file_name))
                 lines.append("data/imgs/" + file_name + "\n")
     f.writelines(lines)
@@ -52,7 +52,6 @@ def convert_to_32():
     for path, dir_list, file_list in g:
         for file_name in file_list:
             p = os.path.join(path, file_name)
-            # executor.submit(conver_to_32_util, p, os.path.join("E:/_dataset/_da   7777777ta_crnn_train_32", file_name))
             img = cv2.imread(p)
             resized = cv2.resize(img, (115, 32))
             cv2.imwrite(os.path.join("E:/_dataset/_data_crnn_train_32", file_name), resized)
