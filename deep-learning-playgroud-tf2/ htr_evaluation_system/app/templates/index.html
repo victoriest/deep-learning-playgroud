@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>HTR evaluation system</title>
+</head>
+<body>
+<div id="img-list">
+    <form action="http://localhost:8088/regulate" method="POST">
+        <ul>
+            {% for item in results %}
+            <li>
+                <img src="{{item.img_url}}" height="30" width="30"/>
+                <label>pred: {{item.pred_result}}</label>
+                <label>real:</label><input maxlength="1" type="text" value="{{item.pred_result}}" id="{{item.id}}" name="{{item.id}}"/>
+            </li>
+            <br/>
+            {% endfor %}
+        </ul>
+        <input type="submit" value="提交"/>
+    </form>
+</div>
+
+</body>
+</html>

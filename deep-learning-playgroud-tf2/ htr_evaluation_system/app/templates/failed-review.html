@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>HTR evaluation system</title>
+    <style type="text/css">
+        table,
+        td {
+            border: 1px solid #333;
+        }
+
+        thead,
+        tfoot {
+            background-color: #333;
+            color: #fff;
+        }
+
+    </style>
+</head>
+<body>
+<div id="img-list">
+    <form action="http://localhost:8088/failed-review" method="POST">
+        <input maxlength="2" type="text" value="{{results.model1}}" id="model1" name="model1"/>
+        &nbsp;&nbsp;&nbsp;&nbsp;
+        <input maxlength="2" type="text" value="{{results.model2}}" id="model2" name="model2"/>
+        &nbsp;&nbsp;&nbsp;&nbsp;
+        <input type="submit" value="提交"/>
+        <br/>
+        <br/>
+
+        <table>
+            {% for item in results.rows %}
+            <tr>
+                <td>{{item.id}}</td>
+                <td>{{item.real_result}}</td>
+                {% if item.data1 is not none %}
+                <td>
+                    <div>
+                        <img src="{{item.data1.img_url}}" height="30" width="30"/>
+                        <label>pred: {{item.data1.pred_result}}</label>
+                    </div>
+                </td>
+                {% else %}
+                <td></td>
+                {% endif %}
+                {% if item.data2 is not none %}
+                <td>
+                    <div>
+                        <img src="{{item.data2.img_url}}" height="30" width="30"/>
+                        <label>pred: {{item.data2.pred_result}}</label>
+                    </div>
+                </td>
+                {% else %}
+                <td></td>
+                {% endif %}
+            </tr>
+            {% endfor %}
+        </table>
+
+    </form>
+</div>
+
+</body>
+</html>
