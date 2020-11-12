@@ -7,7 +7,7 @@ import tensorflow as tf
 import numpy as np
 
 MODEL_PATH_TO_BE_EVALUATED = 'static/models/model-EMINST-RCNN-character-a-to-g-201019.h5'
-MODEL_ID_TO_BE_EVALUATED = 7
+MODEL_ID_TO_BE_EVALUATED = 6
 MODEL_TYPE_TO_BE_EVALUATED = 'ag'
 
 model_tf = tf.compat.v1.keras.models.load_model(MODEL_PATH_TO_BE_EVALUATED)
@@ -82,14 +82,14 @@ num = 0
 count = 0
 failed_count = 0
 for item in db_result:
-    # 执行模型预测
-    img = url_to_image(item[1])
-    pred_result, _ = recognize_character(img)
-    # 可以执行插入
-    print("pred: " + pred_result + "   real: " + item[4])
-    if pred_result != item[4]:
-        failed_count += 1
-    count += 1
+    # # 执行模型预测
+    #     # img = url_to_image(item[1])
+    #     # pred_result, _ = recognize_character(img)
+    #     # # 可以执行插入
+    #     # print("pred: " + pred_result + "   real: " + item[4])
+    #     # if pred_result != item[4]:
+    #     #     failed_count += 1
+    #     # count += 1
 
     try:
         # 执行SQL语句
