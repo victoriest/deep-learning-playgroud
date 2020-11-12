@@ -5,7 +5,7 @@ import cv2
 
 def generate_yolov4_manipast():
     f = open('train.txt', 'w')
-    g = os.walk("E:/_dataset/zyb_stucode_data")
+    g = os.walk("E:/_dataset/zyb_mark_qnsc_data/mixed")
     lines = []
 
     for path, dir_list, file_list in g:
@@ -60,5 +60,20 @@ def convert_to_32():
             print(count, p)
 
 
+def convert_to_gray():
+    g = os.walk("E:/_dataset/zyb_tuotuo_data/gray")
+    for path, dir_list, file_list in g:
+        for file_name in file_list:
+            if os.path.splitext(file_name)[1] != '.jpg':
+                continue
+            p = os.path.join(path, file_name)
+            img = cv2.imread(p, 0)
+            cv2.imwrite(os.path.join("E:/_dataset/zyb_tuotuo_data/gray", file_name), img)
+            global count
+            count += 1
+            print(count, p)
+
+
 if __name__ == '__main__':
     generate_yolov4_manipast()
+    # convert_to_gray()
