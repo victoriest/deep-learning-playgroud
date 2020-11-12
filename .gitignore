@@ -114,3 +114,5 @@ Pipfile
 *.hdf5
 
 checkpoints/
+
+deep-learning-playgroud-tf2/unet_boarder_detection/unet_dataset/**

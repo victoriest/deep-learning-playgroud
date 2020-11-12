@@ -49,8 +49,8 @@ class OcrModel:
         covn_base.trainable = True
 
         # 冻结前面的层，训练最后5层
-        # for layers in covn_base.layers[:-5]:
-        #     layers.trainable = False
+        for layers in covn_base.layers[:-5]:
+            layers.trainable = False
         covn_base.summary()
         # 构建模型
         model = tf.keras.Sequential()
