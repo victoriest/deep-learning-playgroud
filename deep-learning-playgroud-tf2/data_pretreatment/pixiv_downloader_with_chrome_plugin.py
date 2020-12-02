@@ -56,7 +56,7 @@ class PixivDatabase:
 
     def is_pixiv_img_exists(self, original):
         cursor = self.conn.cursor()
-        self.cursor.execute(f'select * from T_PIXIV where original={original}')
+        self.cursor.execute(f"select * from T_PIXIV where original='{original}' and is_downloaded='1'")
         values = cursor.fetchall()
         cursor.close()
         if values is None or len(values) < 1:
@@ -65,7 +65,7 @@ class PixivDatabase:
 
     def pixiv_img_downloaded(self, original):
         cursor = self.conn.cursor()
-        cursor.execute(f"update T_PIXIV SET is_downloaded = '1' WHERE original = {original}")
+        cursor.execute(f"update T_PIXIV SET is_downloaded = '1' WHERE original = '{original}'")
         cursor.close()
         self.conn.commit()
 
@@ -82,7 +82,8 @@ def load_csv(file_path):
         if reader.line_num == 1:
             continue
         result.append(item)
-        db.add_pixiv_img(item)
+        if not db.is_pixiv_img_exists(item[13]):
+            db.add_pixiv_img(item)
     csv_file.close()
     return result
 
@@ -98,9 +99,11 @@ def down_load_image(url, dest_path, dest_file_name, count, size):
         os.makedirs(dest_path)
     if os.path.exists(os.path.join(dest_path, dest_file_name)):
         print(f'图片{dest_file_name}已存在， 跳过 ({count}/{size})')
+        db.pixiv_img_downloaded(url)
         return
     if db.is_pixiv_img_exists(url):
         print(f'图片{dest_file_name}已在数据库中， 跳过 ({count}/{size})')
+        db.pixiv_img_downloaded(url)
         return
     filename = '{}{}{}'.format(dest_path, os.sep, dest_file_name)
     # 下载图片，并保存到文件夹中
