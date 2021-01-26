@@ -8,12 +8,11 @@ from rpa_ex.p_rpa import PRpa
 from multiprocessing import Process, Pool
 
 
-def run_rpa(robot_name, url):
-    rpa1 = PRpa(robot_name=robot_name)
-
+def run_rpa(robot_name, url, tagui_root):
+    rpa1 = PRpa(robot_name=robot_name, tagui_root_dir=tagui_root)
     rpa1.init(userdir=robot_name)
     rpa1.timeout(1)
-    rpa1.url(url)
+    print(rpa1.url(url))
     rpa1.close()
 
 
@@ -84,15 +83,15 @@ if __name__ == '__main__':
     # rpaa.wait(2)
     # rpaa.close()
 
-    p1 = Process(target=run_test, args=('est1', 'D:/robot_tagui'))
-    p2 = Process(target=run_test, args=('est2', 'D:/robot_tagui_2'))
-
-    p1.start()
-    time.sleep(10)
-    p2.start()
-
-    p1.join()
-    p2.join()
+    # p1 = Process(target=run_test, args=('est1', 'D:/robot_tagui'))
+    # p2 = Process(target=run_test, args=('est2', 'D:/robot_tagui_2'))
+    #
+    # p1.start()
+    # time.sleep(10)
+    # p2.start()
+    #
+    # p1.join()
+    # p2.join()
 
     # p = Pool(2)
     # p.apply_async(run_test, args=('est1', ))
@@ -104,17 +103,26 @@ if __name__ == '__main__':
     # run_test('est1', 'D:/robot_tagui')
     # run_test('est2', 'D:/robot_tagui_2')
 
-    # rpa1 = PRpa(robot_name='est1', tagui_root_dir='D:/robot_tagui')
-    # rpa1.init(userdir='est1')
-    # rpa1.timeout(1)
-    # rpa1.url('http://bilibili.com')
-    #
-    # rpa2 = PRpa(robot_name='est2', tagui_root_dir='D:/robot_tagui_2')
-    # rpa2.init(userdir='est2')
-    # rpa2.timeout(1)
-    # rpa2.url('http://baidu.com')
-    #
-    # rpa1.close()
-    # rpa2.close()
+    rpa1 = PRpa(robot_name='est1', tagui_root_dir='D:/robot_tagui')
+    rpa1.init(userdir='est1')
+    rpa1.timeout(1)
+    rpa1.url('http://192.168.3.231')
 
+    rpa2 = PRpa(robot_name='est2', tagui_root_dir='D:/robot_tagui_2')
+    rpa2.init(userdir='est2')
+    rpa2.timeout(1)
+    rpa2.url('http://192.168.3.231')
 
+    rpa1.url('http://baidu.com')
+    rpa2.url('http://douban.com')
+
+    rpa2.url('http://baidu.com')
+    rpa1.url('http://douban.com')
+
+    rpa1.url('http://baidu.com')
+    rpa2.url('http://douban.com')
+
+    rpa1.close()
+    rpa2.close()
+
+    # run_rpa('est1', 'http://baidu.com', 'D:/robot_tagui')
